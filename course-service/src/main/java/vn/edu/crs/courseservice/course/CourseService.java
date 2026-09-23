@@ -3,6 +3,8 @@ package vn.edu.crs.courseservice.course;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,7 +20,16 @@ public class CourseService {
     }
 
     public CourseDTO findById(Long id) {
-        return toDto(repository.findById(id).orElseThrow(() -> new NoSuchElementException("Course not found: " + id)));
+        return toDto(repository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Course not found: " + id)));
+    }
+
+    public Page<CourseDTO> search(String keyword, Pageable pageable) {
+        Page<Course> page = (keyword == null || keyword.isBlank())
+                ? repository.findAll(pageable)
+                : repository.findByNameContainingIgnoreCase(keyword.trim(), pageable);
+
+        return page.map(this::toDto);
     }
 
     public CourseDTO create(CourseDTO dto) {
@@ -33,10 +44,12 @@ public class CourseService {
     }
 
     public CourseDTO update(Long id, CourseDTO dto) {
-        Course course = repository.findById(id).orElseThrow(() -> new NoSuchElementException("Course not found: " + id));
+        Course course = repository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Course not found: " + id));
 
         String newCode = normalizeCode(dto.code());
-        if (newCode != null && !newCode.equalsIgnoreCase(course.getCode()) && repository.existsByCodeIgnoreCase(newCode)) {
+        if (newCode != null && !newCode.equalsIgnoreCase(course.getCode())
+                && repository.existsByCodeIgnoreCase(newCode)) {
             throw new IllegalArgumentException("Course code already exists: " + newCode);
         }
 

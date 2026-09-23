@@ -1,4 +1,4 @@
-package vn.edu.crs.courseservice.common;
+package vn.edu.crs.registrationservice.common;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
