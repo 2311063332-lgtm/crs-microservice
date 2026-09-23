@@ -6,32 +6,61 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
 public class CourseService {
     private final CourseRepository repository;
 
-    public List<Course> findAll() { return repository.findAll(); }
-    public Course findById(Long id) { return repository.findById(id).orElseThrow(() -> notFound(id)); }
-
-    public Course create(CourseRequest request) {
-        Course course = toEntity(request);
-        return repository.save(course);
+    public List<CourseDTO> findAll() {
+        return repository.findAll().stream().map(this::toDto).toList();
     }
 
-    public Course update(Long id, CourseRequest request) {
-        Course course = findById(id);
-        course.setCode(request.code());
-        course.setName(request.name());
-        course.setCredits(request.credits());
-        course.setCapacity(request.capacity());
-        course.setAvailableSeats(Math.min(request.availableSeats(), request.capacity()));
-        course.setOpen(request.open() == null || request.open());
-        return repository.save(course);
+    public CourseDTO findById(Long id) {
+        return toDto(repository.findById(id).orElseThrow(() -> new NoSuchElementException("Course not found: " + id)));
     }
 
-    public void delete(Long id) { repository.delete(findById(id)); }
+    public CourseDTO create(CourseDTO dto) {
+        String code = normalizeCode(dto.code());
+        if (code != null && repository.existsByCodeIgnoreCase(code)) {
+            throw new IllegalArgumentException("Course code already exists: " + code);
+        }
+
+        Course course = toEntity(dto);
+        course.setAvailableSeats(course.getCapacity());
+        return toDto(repository.save(course));
+    }
+
+    public CourseDTO update(Long id, CourseDTO dto) {
+        Course course = repository.findById(id).orElseThrow(() -> new NoSuchElementException("Course not found: " + id));
+
+        String newCode = normalizeCode(dto.code());
+        if (newCode != null && !newCode.equalsIgnoreCase(course.getCode()) && repository.existsByCodeIgnoreCase(newCode)) {
+            throw new IllegalArgumentException("Course code already exists: " + newCode);
+        }
+
+        course.setCode(newCode);
+        course.setName(normalizeName(dto.name()));
+        course.setCredits(dto.credits());
+        course.setCapacity(dto.capacity());
+
+        if (course.getAvailableSeats() == null) {
+            course.setAvailableSeats(dto.capacity());
+        } else if (dto.capacity() != null && course.getAvailableSeats() > dto.capacity()) {
+            course.setAvailableSeats(dto.capacity());
+        }
+
+        course.setOpen(dto.open() == null || dto.open());
+        return toDto(repository.save(course));
+    }
+
+    public void delete(Long id) {
+        if (!repository.existsById(id)) {
+            throw new NoSuchElementException("Course not found: " + id);
+        }
+        repository.deleteById(id);
+    }
 
     @Transactional
     public void reserveSeat(Long id) {
@@ -42,14 +71,40 @@ public class CourseService {
 
     @Transactional
     public void releaseSeat(Long id) {
-        if (repository.releaseSeat(id) == 0) throw notFound(id);
+        if (repository.releaseSeat(id) == 0) {
+            throw new EntityNotFoundException("Course not found: " + id);
+        }
     }
 
-    private Course toEntity(CourseRequest r) {
-        return Course.builder().code(r.code()).name(r.name()).credits(r.credits())
-                .capacity(r.capacity()).availableSeats(Math.min(r.availableSeats(), r.capacity()))
-                .open(r.open() == null || r.open()).build();
+    private Course toEntity(CourseDTO dto) {
+        return Course.builder()
+                .id(dto.id())
+                .code(normalizeCode(dto.code()))
+                .name(normalizeName(dto.name()))
+                .credits(dto.credits())
+                .capacity(dto.capacity())
+                .availableSeats(dto.availableSeats() == null ? dto.capacity() : Math.min(dto.availableSeats(), dto.capacity()))
+                .open(dto.open() == null || dto.open())
+                .build();
     }
 
-    private EntityNotFoundException notFound(Long id) { return new EntityNotFoundException("Course not found: " + id); }
+    private CourseDTO toDto(Course course) {
+        return new CourseDTO(
+                course.getId(),
+                course.getCode(),
+                course.getName(),
+                course.getCredits(),
+                course.getCapacity(),
+                course.getAvailableSeats(),
+                course.getOpen()
+        );
+    }
+
+    private String normalizeCode(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private String normalizeName(String value) {
+        return value == null ? null : value.trim();
+    }
 }
