@@ -6,9 +6,9 @@ interface CourseListProps {
   state: LoadState;
   errorMessage: string;
   onRetry: () => void;
-  onEdit: (course: Course) => void;
-  onDelete: (course: Course) => void;
-  deletingId: number | null;
+  onEdit?: (course: Course) => void;
+  onDelete?: (course: Course) => void;
+  deletingId?: number | null;
 }
 
 function CourseList({ courses, state, errorMessage, onRetry, onEdit, onDelete, deletingId }: CourseListProps) {
@@ -16,19 +16,19 @@ function CourseList({ courses, state, errorMessage, onRetry, onEdit, onDelete, d
   if (state === 'error') return <div><p style={{ color: 'red' }}>{errorMessage}</p><button type="button" onClick={onRetry}>Thử lại</button></div>;
   if (state === 'empty') return <p>Không tìm thấy môn học nào phù hợp.</p>;
 
+  const canManage = Boolean(onEdit || onDelete);
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 24 }}>
-      <thead><tr><th>Tên môn học</th><th>Số tín chỉ</th><th>Số chỗ còn lại</th><th>Thao tác</th></tr></thead>
+      <thead><tr><th>Tên môn học</th><th>Số tín chỉ</th><th>Số chỗ còn lại</th>{canManage && <th>Thao tác</th>}</tr></thead>
       <tbody>{courses.map((course) => (
         <tr key={course.id}>
-          <td>{course.tenMonHoc}</td><td>{course.soTinChi}</td>
+          <td>{course.tenMonHoc}</td>
+          <td>{course.soTinChi}</td>
           <td style={{ color: course.soChoConLai === 0 ? 'red' : undefined }}>{course.soChoConLai}/{course.soChoToiDa}</td>
-          <td>
-            <button type="button" onClick={() => onEdit(course)}>Sửa</button>{' '}
-            <button type="button" onClick={() => onDelete(course)} disabled={deletingId === course.id}>
-              {deletingId === course.id ? 'Đang xoá...' : 'Xoá'}
-            </button>
-          </td>
+          {canManage && <td>
+            {onEdit && <button type="button" onClick={() => onEdit(course)}>Sửa</button>}{' '}
+            {onDelete && <button type="button" onClick={() => onDelete(course)} disabled={deletingId === course.id}>{deletingId === course.id ? 'Đang xoá...' : 'Xoá'}</button>}
+          </td>}
         </tr>
       ))}</tbody>
     </table>
