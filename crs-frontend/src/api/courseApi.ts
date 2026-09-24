@@ -1,8 +1,28 @@
 import axiosClient from './axiosClient';
-import type { Course, PagedResponse } from '../types/course';
+import type { Course, CourseFormValues, PagedResponse } from '../types/course';
 
-export const getCourses = (keyword?: string, page = 0, size = 10) => {
-  return axiosClient.get<PagedResponse<Course>>('/api/courses', {
+interface CoursePayload {
+  tenMonHoc: string;
+  soTinChi: number;
+  soChoToiDa: number;
+}
+
+const toPayload = (values: CourseFormValues): CoursePayload => ({
+  tenMonHoc: values.tenMonHoc.trim(),
+  soTinChi: Number(values.soTinChi),
+  soChoToiDa: Number(values.soChoToiDa),
+});
+
+export const getCourses = (keyword?: string, page = 0, size = 10) =>
+  axiosClient.get<PagedResponse<Course>>('/api/courses', {
     params: { keyword, page, size },
   });
-};
+
+export const createCourse = (values: CourseFormValues) =>
+  axiosClient.post<Course>('/api/courses', toPayload(values));
+
+export const updateCourse = (id: number, values: CourseFormValues) =>
+  axiosClient.put<Course>(`/api/courses/${id}`, toPayload(values));
+
+export const deleteCourse = (id: number) =>
+  axiosClient.delete<void>(`/api/courses/${id}`);

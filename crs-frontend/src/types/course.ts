@@ -6,6 +6,18 @@ export interface Course {
   soChoConLai: number;
 }
 
+export interface CourseFormValues {
+  tenMonHoc: string;
+  soTinChi: string;
+  soChoToiDa: string;
+}
+
+export const emptyCourseForm: CourseFormValues = {
+  tenMonHoc: '',
+  soTinChi: '',
+  soChoToiDa: '',
+};
+
 export interface PagedResponse<T> {
   content: T[];
   totalElements: number;
