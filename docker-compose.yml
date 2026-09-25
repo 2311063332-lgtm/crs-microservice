@@ -1,0 +1,113 @@
+services:
+  mysql-auth:
+    image: mysql:8.4
+    container_name: crs-mysql-auth
+    environment:
+      MYSQL_DATABASE: auth_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-auth-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mysql-course:
+    image: mysql:8.4
+    container_name: crs-mysql-course
+    environment:
+      MYSQL_DATABASE: course_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-course-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mysql-registration:
+    image: mysql:8.4
+    container_name: crs-mysql-registration
+    environment:
+      MYSQL_DATABASE: registration_db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql-registration-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth-service:
+    build: ./auth-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-auth:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      JWT_SECRET: ${JWT_SECRET:-CRS-Microservices-Secret-Key-Nam-3-Hoc-Ky-2026-Doi-Trong-Thuc-Te}
+    ports:
+      - "8081:8081"
+    depends_on:
+      mysql-auth:
+        condition: service_healthy
+
+  course-service:
+    build: ./course-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-course:3306/course_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      JWT_SECRET: ${JWT_SECRET:-CRS-Microservices-Secret-Key-Nam-3-Hoc-Ky-2026-Doi-Trong-Thuc-Te}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-crs-internal-change-me}
+    ports:
+      - "8082:8082"
+    depends_on:
+      mysql-course:
+        condition: service_healthy
+
+  registration-service:
+    build: ./registration-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-registration:3306/registration_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      JWT_SECRET: ${JWT_SECRET:-CRS-Microservices-Secret-Key-Nam-3-Hoc-Ky-2026-Doi-Trong-Thuc-Te}
+      COURSE_SERVICE_BASE_URL: http://course-service:8082
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-crs-internal-change-me}
+    ports:
+      - "8083:8083"
+    depends_on:
+      mysql-registration:
+        condition: service_healthy
+      course-service:
+        condition: service_started
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - course-service
+      - registration-service
+
+  crs-frontend:
+    build:
+      context: ./crs-frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  mysql-auth-data:
+  mysql-course-data:
+  mysql-registration-data:
