@@ -3,10 +3,9 @@ export interface Registration {
   studentId: number;
   courseId: number;
   trangThai: 'DA_DANG_KY' | 'DA_HUY';
-  ngayDangky: string;
+  ngayDangKy: string;
 }
 
 export interface RegistrationRequest {
-  studentId: number;
   courseId: number;
 }

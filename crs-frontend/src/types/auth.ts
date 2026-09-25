@@ -5,6 +5,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  userId: number;
   username: string;
   role: 'ADMIN' | 'STUDENT';
 }

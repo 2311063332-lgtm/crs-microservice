@@ -25,7 +25,8 @@ public class AuthService {
         }
 
         return new LoginResponse(
-                jwtUtil.generateToken(user.getUsername(), user.getRole()),
+                jwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole()),
+                user.getId(),
                 user.getUsername(),
                 user.getRole()
         );

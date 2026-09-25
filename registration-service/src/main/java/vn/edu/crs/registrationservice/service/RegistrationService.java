@@ -8,6 +8,7 @@ import vn.edu.crs.registrationservice.entity.Registration;
 import vn.edu.crs.registrationservice.repository.RegistrationRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -18,6 +19,10 @@ public class RegistrationService {
 
     private final RegistrationRepository registrationRepository;
     private final CourseClient courseClient;
+
+    public List<Registration> getMyRegistrations(Long studentId) {
+        return registrationRepository.findByStudentId(studentId);
+    }
 
     public Registration register(RegistrationRequestDTO dto) {
         if (registrationRepository.existsByStudentIdAndCourseIdAndTrangThai(
@@ -36,16 +41,18 @@ public class RegistrationService {
         return registrationRepository.save(registration);
     }
 
-    public void cancel(Long registrationId) {
+    public void cancel(Long registrationId, Long studentId) {
         Registration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new NoSuchElementException("Khong tim thay dang ky id=" + registrationId));
 
+        if (!registration.getStudentId().equals(studentId)) {
+            throw new IllegalStateException("Ban khong co quyen huy dang ky nay");
+        }
         if (DA_HUY.equals(registration.getTrangThai())) {
             throw new IllegalStateException("Dang ky nay da duoc huy truoc do");
         }
 
         courseClient.releaseSeat(registration.getCourseId());
-
         registration.setTrangThai(DA_HUY);
         registrationRepository.save(registration);
     }

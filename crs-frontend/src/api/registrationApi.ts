@@ -1,11 +1,11 @@
 import axiosClient from './axiosClient';
 import type { Registration, RegistrationRequest } from '../types/registration';
 
-export const createRegistration = (request: RegistrationRequest) =>
-  axiosClient.post<Registration>('/api/registrations', request);
+export const registerCourse = (payload: RegistrationRequest) =>
+  axiosClient.post<Registration>('/api/registrations', payload);
 
 export const getMyRegistrations = () =>
-  axiosClient.get<Registration[]>('/api/registrations/me');
+  axiosClient.get<Registration[]>('/api/registrations/my');
 
 export const cancelRegistration = (id: number) =>
   axiosClient.delete(`/api/registrations/${id}`);
