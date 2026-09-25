@@ -1,0 +1,12 @@
+import { useEffect, useState } from 'react';
+import { createApiKey, getApiKeys, revokeApiKey } from '../api/apiKeyApi';
+import type { ApiKey } from '../types/apiKey';
+
+export default function ApiKeysPage() {
+  const [keys, setKeys] = useState<ApiKey[]>([]); const [ownerName, setOwnerName] = useState(''); const [scopes, setScopes] = useState('courses:read'); const [validDays, setValidDays] = useState(30); const [newKey, setNewKey] = useState<string | null>(null); const [error, setError] = useState<string | null>(null);
+  const load = async () => { try { setKeys((await getApiKeys()).data); } catch { setError('Không tải được danh sách API key'); } };
+  useEffect(() => { void load(); }, []);
+  const handleCreate = async (event: React.FormEvent) => { event.preventDefault(); setError(null); try { const response = await createApiKey({ ownerName, scopes, validDays }); setNewKey(response.data.keyValue); setOwnerName(''); await load(); } catch { setError('Không cấp được API key'); } };
+  const handleRevoke = async (id: number) => { if (!window.confirm('Thu hồi API key này?')) return; try { await revokeApiKey(id); await load(); } catch { setError('Không thu hồi được API key'); } };
+  return <main className="page-shell"><section className="card"><h1>Quản lý API Key</h1>{error && <p className="error">{error}</p>}{newKey && <div className="success"><strong>Hãy sao chép key này ngay, key chỉ hiển thị một lần:</strong><code>{newKey}</code><button type="button" onClick={() => void navigator.clipboard.writeText(newKey)}>Sao chép</button><button type="button" onClick={() => setNewKey(null)}>Đã lưu</button></div>}<form onSubmit={handleCreate}><input placeholder="Tên đối tác" value={ownerName} onChange={e => setOwnerName(e.target.value)} required /><input value={scopes} onChange={e => setScopes(e.target.value)} required /><input type="number" min="0" value={validDays} onChange={e => setValidDays(Number(e.target.value))} /><button type="submit">Cấp key</button></form><table className="course-table"><thead><tr><th>Đối tác</th><th>Scopes</th><th>Trạng thái</th><th>Hạn</th><th></th></tr></thead><tbody>{keys.map(key => <tr key={key.id}><td>{key.ownerName}</td><td>{key.scopes}</td><td>{key.status}</td><td>{key.expiresAt ?? 'Không hạn'}</td><td>{key.status === 'ACTIVE' && <button type="button" onClick={() => void handleRevoke(key.id)}>Thu hồi</button>}</td></tr>)}</tbody></table></section></main>;
+}
